@@ -1,0 +1,28 @@
+{
+    "name": "react-native-albums",
+    "version": "0.0.1",
+    "description": "A react-native library to get gallery album list",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/shimohq/react-native-albums"
+    },
+    "license": "MIT",
+    "keywords": [
+        "react-component",
+        "react-native",
+        "album",
+        "gallery",
+        "bucket",
+        "android",
+        "ios"
+    ],
+    "main": "Albums.js",
+    "scripts": {
+        "lint": "eslint ./"
+    },
+    "devDependencies": {
+        "babel-eslint": "^6.1.2",
+        "eslint": "^2.13.1",
+        "eslint-plugin-react": "^4.3.0"
+    }
+}

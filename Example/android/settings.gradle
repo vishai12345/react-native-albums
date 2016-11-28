@@ -1,0 +1,5 @@
+rootProject.name = 'albums'
+
+include ':app'
+include ':react-native-albums'
+project(':react-native-albums').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-albums/android')
