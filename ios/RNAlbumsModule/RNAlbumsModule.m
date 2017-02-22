@@ -45,7 +45,7 @@ RCT_EXPORT_METHOD(getAlbumList:(NSDictionary *)options
         NSDictionary *album = @{@"count": @(fetchResult.count),
                                 @"name": albumNameFromType(type),
                                 // Photos Framework asset scheme ph://
-                                // https://github.com/facebook/react-native/blob/967c105ed178062ee78beb7322f1b8c7bdf2d0f1/Libraries/Image/RCTImageLoader.m
+                                // https://github.com/facebook/react-native/blob/master/Libraries/CameraRoll/RCTPhotoLibraryImageLoader.m
                                 @"cover": coverAsset ? [NSString stringWithFormat:@"ph://%@", coverAsset.localIdentifier] : @"null" };
         [result addObject:album];
       }];
