@@ -88,18 +88,18 @@ typedef void (^authorizeCompletion)(BOOL);
 
 static NSString *albumNameFromType(PHAssetCollectionSubtype type) {
   switch (type) {
-    case PHAssetCollectionSubtypeSmartAlbumUserLibrary: return @"所有照片";
-    case PHAssetCollectionSubtypeSmartAlbumSelfPortraits: return @"自拍";
-    case PHAssetCollectionSubtypeSmartAlbumRecentlyAdded: return @"最近添加";
-    case PHAssetCollectionSubtypeSmartAlbumTimelapses: return @"延时摄影";
-    case PHAssetCollectionSubtypeSmartAlbumPanoramas: return @"全景照片";
-    case PHAssetCollectionSubtypeSmartAlbumFavorites: return @"个人收藏";
-    case PHAssetCollectionSubtypeSmartAlbumScreenshots: return @"屏幕快照";
-    case PHAssetCollectionSubtypeSmartAlbumBursts: return @"连拍快照";
-    case PHAssetCollectionSubtypeSmartAlbumVideos: return @"视频";
-    case PHAssetCollectionSubtypeSmartAlbumSlomoVideos: return @"慢动作";
-    case PHAssetCollectionSubtypeSmartAlbumDepthEffect: return @"景深效果";
-    default: return @"";
+    case PHAssetCollectionSubtypeSmartAlbumUserLibrary: return @"UserLibrary";
+    case PHAssetCollectionSubtypeSmartAlbumSelfPortraits: return @"SelfPortraits";
+    case PHAssetCollectionSubtypeSmartAlbumRecentlyAdded: return @"RecentlyAdded";
+    case PHAssetCollectionSubtypeSmartAlbumTimelapses: return @"Timelapses";
+    case PHAssetCollectionSubtypeSmartAlbumPanoramas: return @"Panoramas";
+    case PHAssetCollectionSubtypeSmartAlbumFavorites: return @"Favorites";
+    case PHAssetCollectionSubtypeSmartAlbumScreenshots: return @"Screenshots";
+    case PHAssetCollectionSubtypeSmartAlbumBursts: return @"Bursts";
+    case PHAssetCollectionSubtypeSmartAlbumVideos: return @"Videos";
+    case PHAssetCollectionSubtypeSmartAlbumSlomoVideos: return @"SlomoVideos";
+    case PHAssetCollectionSubtypeSmartAlbumDepthEffect: return @"DepthEffect";
+    default: return @"null";
   }
 }
 
