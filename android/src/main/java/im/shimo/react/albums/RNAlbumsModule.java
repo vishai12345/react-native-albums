@@ -167,7 +167,7 @@ public class RNAlbumsModule extends ReactContextBaseJavaModule {
                 WritableMap image = Arguments.createMap();
                 setWritableMap(image, "count", count);
                 setWritableMap(image, "date", date);
-                setWritableMap(image, "cover", data);
+                setWritableMap(image, "cover", "file://" + data);
                 setWritableMap(image, "name", bucket);
 
                 list.pushMap(image);

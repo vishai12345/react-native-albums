@@ -42,12 +42,15 @@ RCT_EXPORT_METHOD(getAlbumList:(NSDictionary *)options
         fetchOptions.sortDescriptors = @[ [NSSortDescriptor sortDescriptorWithKey:@"creationDate" ascending:YES] ];
         PHFetchResult *fetchResult = [PHAsset fetchAssetsInAssetCollection:obj options: fetchOptions];
         PHAsset *coverAsset = fetchResult.lastObject;
-        NSDictionary *album = @{@"count": @(fetchResult.count),
-                                @"name": albumNameFromType(type),
-                                // Photos Framework asset scheme ph://
-                                // https://github.com/facebook/react-native/blob/master/Libraries/CameraRoll/RCTPhotoLibraryImageLoader.m
-                                @"cover": coverAsset ? [NSString stringWithFormat:@"ph://%@", coverAsset.localIdentifier] : @"null" };
-        [result addObject:album];
+          
+        if (coverAsset) {
+            NSDictionary *album = @{@"count": @(fetchResult.count),
+                                    @"name": albumNameFromType(type),
+                                    // Photos Framework asset scheme ph://
+                                    // https://github.com/facebook/react-native/blob/master/Libraries/CameraRoll/RCTPhotoLibraryImageLoader.m
+                                    @"cover": [NSString stringWithFormat:@"ph://%@", coverAsset.localIdentifier] };
+            [result addObject:album];
+        }
       }];
       resolve(result);
     } else {
