@@ -13,7 +13,6 @@
 #import <React/RCTUtils.h>
 
 #pragma mark - declaration
-static NSString *albumNameFromType(PHAssetCollectionSubtype type);
 static BOOL isAlbumTypeSupported(PHAssetCollectionSubtype type);
 
 @implementation RNAlbumsModule
@@ -36,16 +35,17 @@ RCT_EXPORT_METHOD(getAlbumList:(NSDictionary *)options
         if (!isAlbumTypeSupported(type)) {
           return;
         }
-        
+
         PHFetchOptions *fetchOptions = [[PHFetchOptions alloc] init];
         fetchOptions.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d", PHAssetMediaTypeImage];
         fetchOptions.sortDescriptors = @[ [NSSortDescriptor sortDescriptorWithKey:@"creationDate" ascending:YES] ];
         PHFetchResult *fetchResult = [PHAsset fetchAssetsInAssetCollection:obj options: fetchOptions];
         PHAsset *coverAsset = fetchResult.lastObject;
-          
+
         if (coverAsset) {
+
             NSDictionary *album = @{@"count": @(fetchResult.count),
-                                    @"name": albumNameFromType(type),
+                                    @"name": [obj localizedTitle],
                                     // Photos Framework asset scheme ph://
                                     // https://github.com/facebook/react-native/blob/master/Libraries/CameraRoll/RCTPhotoLibraryImageLoader.m
                                     @"cover": [NSString stringWithFormat:@"ph://%@", coverAsset.localIdentifier] };
@@ -87,24 +87,7 @@ typedef void (^authorizeCompletion)(BOOL);
 
 @end
 
-#pragma mark - 
-
-static NSString *albumNameFromType(PHAssetCollectionSubtype type) {
-  switch (type) {
-    case PHAssetCollectionSubtypeSmartAlbumUserLibrary: return @"UserLibrary";
-    case PHAssetCollectionSubtypeSmartAlbumSelfPortraits: return @"SelfPortraits";
-    case PHAssetCollectionSubtypeSmartAlbumRecentlyAdded: return @"RecentlyAdded";
-    case PHAssetCollectionSubtypeSmartAlbumTimelapses: return @"Timelapses";
-    case PHAssetCollectionSubtypeSmartAlbumPanoramas: return @"Panoramas";
-    case PHAssetCollectionSubtypeSmartAlbumFavorites: return @"Favorites";
-    case PHAssetCollectionSubtypeSmartAlbumScreenshots: return @"Screenshots";
-    case PHAssetCollectionSubtypeSmartAlbumBursts: return @"Bursts";
-    case PHAssetCollectionSubtypeSmartAlbumVideos: return @"Videos";
-    case PHAssetCollectionSubtypeSmartAlbumSlomoVideos: return @"SlomoVideos";
-    case PHAssetCollectionSubtypeSmartAlbumDepthEffect: return @"DepthEffect";
-    default: return @"null";
-  }
-}
+#pragma mark -
 
 static BOOL isAlbumTypeSupported(PHAssetCollectionSubtype type) {
   switch (type) {
