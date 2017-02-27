@@ -32,7 +32,7 @@ RCT_EXPORT_METHOD(getAlbumList:(NSDictionary *)options
       __block NSMutableArray<NSDictionary *> *result = [[NSMutableArray alloc] init];
       [collections enumerateObjectsUsingBlock:^(PHAssetCollection * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         PHAssetCollectionSubtype type = [obj assetCollectionSubtype];
-        if (!isAlbumTypeSupported(type)) {
+        if (!isAlbumTypeSupported(type) || type == PHAssetCollectionSubtypeSmartAlbumRecentlyAdded) {
           return;
         }
 
