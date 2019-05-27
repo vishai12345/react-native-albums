@@ -1,6 +1,7 @@
 package im.shimo.react.albums;
 
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
 
 import com.facebook.react.bridge.Arguments;
@@ -9,15 +10,16 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 public class RNAlbumsModule extends ReactContextBaseJavaModule {
+
+    private static String TAG="RNAlbumsModule";
 
     public RNAlbumsModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -31,153 +33,233 @@ public class RNAlbumsModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void getImageList(ReadableMap options, Promise promise) {
-        ArrayList<String> projection = new ArrayList<>();
-        ArrayList<ReadableMap> columns = new ArrayList<>();
 
-        setColumn("path", MediaStore.Images.Media.DATA, projection, columns);
+        ArrayList<MediaData> albumList = new ArrayList<>();
+        final String[] projection = {
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DATA,
+                MediaStore.Files.FileColumns.DATE_ADDED,
+                MediaStore.Files.FileColumns.MEDIA_TYPE,
+                MediaStore.Files.FileColumns.MIME_TYPE,
+                MediaStore.Files.FileColumns.TITLE,
+                MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
+                MediaStore.Video.Media.BUCKET_DISPLAY_NAME
+        };
 
-        Map<String, String> fieldMap = new HashMap<>();
-        fieldMap.put("title", MediaStore.Images.Media.TITLE);
-        fieldMap.put("name", MediaStore.Images.Media.DISPLAY_NAME);
-        fieldMap.put("size", MediaStore.Images.Media.SIZE);
-        fieldMap.put("description", MediaStore.Images.Media.DESCRIPTION);
-        fieldMap.put("orientation", MediaStore.Images.Media.ORIENTATION);
-        fieldMap.put("type", MediaStore.Images.Media.MIME_TYPE);
-        fieldMap.put("album", MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+        // Return only video and image metadata.
+        String selection = MediaStore.Files.FileColumns.MEDIA_TYPE + "="
+                + MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE
+                + " OR "
+                + MediaStore.Files.FileColumns.MEDIA_TYPE + "="
+                + MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 
-        Iterator<Map.Entry<String, String>> fieldIterator = fieldMap.entrySet().iterator();
+        Uri queryUri = MediaStore.Files.getContentUri("external");
 
-        while (fieldIterator.hasNext()) {
-            Map.Entry<String, String> pair = fieldIterator.next();
+        final String orderBy = MediaStore.Images.Media.DATE_TAKEN;
+        int tempPosition = 0;
+        Cursor cursor;
+        int columnIndexDataUri, columnIndexDataType, columnIndexImageFolderName, columnIndexVideoFolderName;
+        String tempAbsImagePath = null, tempMediaType = null, tempMediaFolder = null;
+        boolean isFolder = false;
 
-            if (shouldSetField(options, pair.getKey())) {
-                setColumn(pair.getKey(), pair.getValue(), projection, columns);
+        albumList.clear();
+        cursor = getReactApplicationContext().getContentResolver().query(queryUri, projection, selection, null, orderBy + " DESC");
+        columnIndexDataUri = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA);
+        columnIndexDataType = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE);
+        columnIndexImageFolderName = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+        columnIndexVideoFolderName = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME);
+        while (cursor.moveToNext()) {
+            tempAbsImagePath = cursor.getString(columnIndexDataUri);
+            tempMediaType = cursor.getString(columnIndexDataType);
+//            Log.e(TAG, "getImages: tempAbsImagePath >> " + tempAbsImagePath);
+
+            if (tempMediaType.equalsIgnoreCase("1")) {
+                tempMediaFolder = cursor.getString(columnIndexImageFolderName);
+                tempMediaType = "ALAssetTypePhoto";
+
+            } else if (tempMediaType.equalsIgnoreCase("3")) {
+                tempMediaFolder = cursor.getString(columnIndexVideoFolderName);
+                tempMediaType = "ALAssetTypeVideo";
             }
+//
+//            Log.e(TAG, "getImages: tempMediaFolder >> " + tempMediaFolder);
+//            Log.e(TAG, "getImages: tempMediaType >> " + tempMediaType);
 
-            fieldIterator.remove();
+            albumList.add(new MediaData(tempAbsImagePath, tempMediaType));
+
         }
+        Gson gson = new GsonBuilder().create();
+        JsonArray myCustomArray = gson.toJsonTree(albumList).getAsJsonArray();
 
-        if (shouldSetField(options, "location")) {
-            setColumn("latitude", MediaStore.Images.Media.LATITUDE, projection, columns);
-            setColumn("longitude", MediaStore.Images.Media.LONGITUDE, projection, columns);
-        }
-
-        if (shouldSetField(options, "date")) {
-            setColumn("added", MediaStore.Images.Media.DATE_ADDED, projection, columns);
-            setColumn("modified", MediaStore.Images.Media.DATE_MODIFIED, projection, columns);
-            setColumn("taken", MediaStore.Images.Media.DATE_TAKEN, projection, columns);
-        }
-
-        if (shouldSetField(options, "dimensions")) {
-            setColumn("width", MediaStore.Images.Media.WIDTH, projection, columns);
-            setColumn("height", MediaStore.Images.Media.HEIGHT, projection, columns);
-        }
-
-
-        Cursor cursor = getReactApplicationContext().getContentResolver().query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection.toArray(new String[projection.size()]),
-                null,
-                null,
-                null
-        );
-
-
-        Map<String, Integer> columnIndexMap = new HashMap<>();
-        WritableArray list = Arguments.createArray();
-
-        if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
-            for (int i = 0; i < projection.size(); i++) {
-                String field = projection.get(i);
-                columnIndexMap.put(field, cursor.getColumnIndex(field));
-            }
-
-            do {
-                Iterator<ReadableMap> columnIterator = columns.iterator();
-
-                WritableMap image = Arguments.createMap();
-
-                while (columnIterator.hasNext()) {
-                    ReadableMap column = columnIterator.next();
-                    setWritableMap(image, column.getString("name"), cursor.getString(columnIndexMap.get(column.getString("columnName"))));
-                }
-
-                list.pushMap(image);
-            } while (cursor.moveToNext());
-            cursor.close();
-        }
-
-        promise.resolve(list);
+//        Log.e(TAG, "getImages: albumList >> " + albumList);
+//        Log.e(TAG, "getImages: myCustomArray >> " + myCustomArray);
+        promise.resolve(myCustomArray.toString());
     }
 
     @ReactMethod
     public void getAlbumList(ReadableMap options, Promise promise) {
-        // which image properties are we querying
-        String[] PROJECTION_BUCKET = {
-                MediaStore.Images.ImageColumns.BUCKET_ID,
-                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
-                MediaStore.Images.ImageColumns.DATE_TAKEN,
-                MediaStore.Images.ImageColumns.DATA,
-                "count(" +  MediaStore.Images.ImageColumns.BUCKET_ID + ") as count"
+
+
+        ArrayList<ImageModel> albumList = new ArrayList<>();
+        ArrayList<MediaData> allMediaList = new ArrayList<>();
+        final String[] projection = {
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DATA,
+                MediaStore.Files.FileColumns.DATE_ADDED,
+                MediaStore.Files.FileColumns.MEDIA_TYPE,
+                MediaStore.Files.FileColumns.MIME_TYPE,
+                MediaStore.Files.FileColumns.TITLE,
+                MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
+                MediaStore.Video.Media.BUCKET_DISPLAY_NAME
         };
 
-        // We want to order the albums by reverse chronological order. We abuse the
-        // "WHERE" parameter to insert a "GROUP BY" clause into the SQL statement.
-        // The template for "WHERE" parameter is like:
-        //    SELECT ... FROM ... WHERE (%s)
-        // and we make it look like:
-        //    SELECT ... FROM ... WHERE (1) GROUP BY 1,(2)
-        // The "(1)" means true. The "1,(2)" means the first two columns specified
-        // after SELECT. Note that because there is a ")" in the template, we use
-        // "(2" to match it.
-        String BUCKET_GROUP_BY = "1) GROUP BY 1,(2";
-        String BUCKET_ORDER_BY = "MAX(" + MediaStore.Images.ImageColumns.DATE_TAKEN + ") DESC";
+        // Return only video and image metadata.
+        String selection = MediaStore.Files.FileColumns.MEDIA_TYPE + "="
+                + MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE
+                + " OR "
+                + MediaStore.Files.FileColumns.MEDIA_TYPE + "="
+                + MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 
-        // Get the base URI for the People table in the Contacts content provider.
+        Uri queryUri = MediaStore.Files.getContentUri("external");
 
-        Cursor cursor = getReactApplicationContext().getContentResolver().query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                PROJECTION_BUCKET,
-                BUCKET_GROUP_BY,
-                null,
-                BUCKET_ORDER_BY
-        );
+        final String orderBy = MediaStore.Images.Media.DATE_TAKEN;
+        int tempPosition = 0;
+        Cursor cursor;
+        int columnIndexDataUri, columnIndexDataType, columnIndexImageFolderName, columnIndexVideoFolderName;
+        String tempAbsImagePath = null, tempMediaType = null, tempMediaFolder = null;
+        boolean isFolder = false;
 
-        WritableArray list = Arguments.createArray();
-        if (cursor != null && cursor.moveToFirst()) {
-            String bucket;
-            String date;
-            String data;
-            String count;
-            int bucketColumn = cursor.getColumnIndex(
-                    MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
-            int dateColumn = cursor.getColumnIndex(
-                    MediaStore.Images.Media.DATE_TAKEN);
-            int dataColumn = cursor.getColumnIndex(
-                    MediaStore.Images.Media.DATA);
-            int countColumn = cursor.getColumnIndex("count");
-            do {
-                // Get the field values
-                bucket = cursor.getString(bucketColumn);
-                date = cursor.getString(dateColumn);
-                data = cursor.getString(dataColumn);
-                count = cursor.getString(countColumn);
+        albumList.clear();
+        allMediaList.clear();
+        cursor = getReactApplicationContext().getContentResolver().query(queryUri, projection, selection, null, orderBy + " DESC");
+        columnIndexDataUri = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA);
+        columnIndexDataType = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE);
+        columnIndexImageFolderName = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+        columnIndexVideoFolderName = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME);
+        while (cursor.moveToNext()) {
+            tempAbsImagePath = cursor.getString(columnIndexDataUri);
+            tempMediaType = cursor.getString(columnIndexDataType);
+//            Log.e(TAG, "getImages: tempAbsImagePath >> " + tempAbsImagePath);
+
+            if (tempMediaType.equalsIgnoreCase("1")) {
+                tempMediaFolder = cursor.getString(columnIndexImageFolderName);
+                tempMediaType = "ALAssetTypePhoto";
+
+            } else if (tempMediaType.equalsIgnoreCase("3")) {
+                tempMediaFolder = cursor.getString(columnIndexVideoFolderName);
+                tempMediaType = "ALAssetTypeVideo";
+            }
+//
+//            Log.e(TAG, "getImages: tempMediaFolder >> " + tempMediaFolder);
+//            Log.e(TAG, "getImages: tempMediaType >> " + tempMediaType);
 
 
-                WritableMap image = Arguments.createMap();
-                setWritableMap(image, "count", count);
-                setWritableMap(image, "date", date);
-                setWritableMap(image, "cover", "file://" + data);
-                setWritableMap(image, "name", bucket);
+            if (albumList.size() == 0)
+                isFolder = false;
+            for (int i = 0; i < albumList.size(); i++) {
+                if (albumList.get(i).getStr_folder().equals(cursor.getString(columnIndexImageFolderName))) {
+                    isFolder = true;
+                    tempPosition = i;
+                    break;
+                } else {
+                    isFolder = false;
+                }
+            }
+            ArrayList<MediaData> al_path;
+            if (isFolder) {
+                al_path = new ArrayList<>();
+                al_path.addAll(albumList.get(tempPosition).getAl_imagepath());
+                al_path.add(new MediaData(tempAbsImagePath, tempMediaType));
+                albumList.get(tempPosition).setAlbumMedia(al_path);
+            } else {
+                al_path = new ArrayList<>();
+                al_path.add(new MediaData(tempAbsImagePath, tempMediaType));
+                ImageModel obj_model = new ImageModel();
+                obj_model.setAlbum(cursor.getString(columnIndexImageFolderName));
+                obj_model.setAlbumMedia(al_path);
+                albumList.add(obj_model);
+            }
+            allMediaList.add(new MediaData(tempAbsImagePath, tempMediaType));
+        }
+        ImageModel data = new ImageModel();
+        data.setAlbum("All Photos");
+        data.setAlbumMedia(allMediaList);
+        albumList.add(data);
 
-                list.pushMap(image);
-            } while (cursor.moveToNext());
+        Gson gson = new GsonBuilder().create();
+        JsonArray myCustomArray = gson.toJsonTree(albumList).getAsJsonArray();
 
-            cursor.close();
+//        Log.e(TAG, "getImages: albumList >> " + albumList);
+//        Log.e(TAG, "getImages: myCustomArray >> " + myCustomArray);
+        promise.resolve(myCustomArray.toString());
+    }
+
+    public class ImageModel {
+        String album;
+        ArrayList<MediaData> album_media;
+        String type;
+
+        public String getStr_folder() {
+            return album;
         }
 
-        promise.resolve(list);
+        public void setAlbum(String album) {
+            this.album = album;
+        }
+
+        public ArrayList<MediaData> getAl_imagepath() {
+            return album_media;
+        }
+
+        public void setAlbumMedia(ArrayList<MediaData> album_media) {
+            this.album_media = album_media;
+        }
+
+        @Override
+        public String toString() {
+            return "{" +
+                    "album='" + album + '\'' +
+                    ", album_media=" + album_media +
+                    '}';
+        }
     }
+
+    
+
+    public class MediaData {
+        String uri;
+        String type;
+
+        public MediaData(String uri, String type) {
+            this.uri= "file://" + uri;
+           this. type=type;
+
+        }
+
+        public String getUri() {
+            return uri;
+        }
+
+        public void setUri(String uri) {
+            this.uri =  uri;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        @Override
+        public String toString() {
+            return "{uri='" +  uri + '\'' +
+                    ", type='" + type + '\'' +
+                    '}';
+        }
+    }
+
 
     private boolean shouldSetField(ReadableMap options, String name) {
         return options.hasKey(name) && options.getBoolean(name);

@@ -7,9 +7,15 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <AssetsLibrary/AssetsLibrary.h>
 
 @protocol RCTBridgeModule;
 
 @interface RNAlbumsModule : NSObject <RCTBridgeModule>
+{
+    void (^_completionHandler)(NSMutableDictionary *album);
+}
 
+- (void) getAlbumsCompletionHandler:(void(^)(NSMutableDictionary*))handler;
+//- (void) getImageArray:((ALAssetsGroup *)options (void(^)(NSMutableDictionary*))handler);
 @end
