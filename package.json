@@ -1,7 +1,7 @@
 {
     "name": "react-native-albums",
     "version": "0.0.2",
-    "description": "A react-native library to get gallery album list",
+    "description": "A react-native library to get gallery album list with a change",
     "repository": {
         "type": "git",
         "url": "https://github.com/shimohq/react-native-albums"
