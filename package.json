@@ -6,6 +6,7 @@
         "type": "git",
         "url": "https://github.com/shimohq/react-native-albums"
     },
+    "author": "shimohq",
     "license": "MIT",
     "keywords": [
         "react-component",
